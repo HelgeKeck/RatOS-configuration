@@ -16,6 +16,30 @@ disable_modem_manager()
 	fi
 }
 
+
+update_beacon_fw()
+{
+	report_status "Updating beacon firmware..."
+	KLIPPER_DIR="/home/pi/klipper"
+	KLIPPER_ENV="/home/pi/klippy-env"
+	BEACON_DIR="/home/pi/beacon"
+	if [ ! -d "$BEACON_DIR" ] || [ ! -e "$KLIPPER_DIR/klippy/extras/beacon.py" ]; then
+		echo "beacon: beacon isn't installed, skipping..."
+		return
+	fi
+
+	if [ ! -d "$KLIPPER_DIR" ] || [ ! -d "$KLIPPER_ENV" ]; then
+		echo "beacon: klipper or klippy env doesn't exist"
+		return
+	fi
+
+	if [ ! -f "$BEACON_DIR/update_firmware.py" ]; then
+		echo "beacon: beacon firmware updater script doesn't exist, skipping..."
+		return
+	fi
+	$KLIPPER_ENV/bin/python $BEACON_DIR/update_firmware.py update all --no-sudo
+}
+
 install_beacon()
 {
 	KLIPPER_DIR="/home/pi/klipper"
@@ -106,6 +130,10 @@ install_hooks()
 	then
  	   ln -s /home/pi/printer_data/config/RatOS/scripts/moonraker-post-merge.sh /home/pi/moonraker/.git/hooks/post-merge
 	fi
+	if [[ ! -L /home/pi/beacon/.git/hooks/post-merge ]]
+	then
+ 	   ln -s "$SCRIPT_DIR"/beacon-post-merge.sh /home/pi/beacon/.git/hooks/post-merge
+	fi
 }
 
 ensure_service_permission()
@@ -146,6 +174,7 @@ ensure_sudo_command_whitelisting()
 	cat << '#EOF' > /tmp/030-ratos-githooks
 pi  ALL=(ALL) NOPASSWD: /home/pi/printer_data/config/RatOS/scripts/ratos-update.sh
 pi  ALL=(ALL) NOPASSWD: /home/pi/printer_data/config/RatOS/scripts/klipper-mcu-update.sh
+pi  ALL=(ALL) NOPASSWD: /home/pi/printer_data/config/RatOS/scripts/beacon-update.sh
 pi  ALL=(ALL) NOPASSWD: /home/pi/printer_data/config/RatOS/scripts/moonraker-update.sh
 #EOF
 
